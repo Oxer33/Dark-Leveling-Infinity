@@ -11,6 +11,7 @@ import '../../../core/utils/sprite_generator_v2.dart';
 import '../../../data/enemies/enemy_definitions.dart';
 import '../../../data/enemies/boss_definitions.dart';
 import '../enemies/enemy_component.dart';
+import '../effects/visual_effects.dart';
 
 /// Tipo di tile nel dungeon
 enum TileType {
@@ -81,20 +82,24 @@ class RoomData {
 class DungeonResult {
   final List<SpriteComponent> tiles;
   final List<EnemyComponent> nemici;
+  final List<Component> decorazioni; // torce, trappole, decorazioni
   final Vector2 posizionePartenza;
   final Vector2 posizioneBoss;
   final List<RoomData> stanze;
   final GateRank rango;
   final int piano;
+  final List<List<int>> grigliaCollisioni; // 0=passabile, 1=muro
 
   DungeonResult({
     required this.tiles,
     required this.nemici,
+    this.decorazioni = const [],
     required this.posizionePartenza,
     required this.posizioneBoss,
     required this.stanze,
     required this.rango,
     this.piano = 1,
+    this.grigliaCollisioni = const [],
   });
 }
 
@@ -138,22 +143,30 @@ class DungeonGenerator {
     // Genera i nemici
     final nemici = await _generaNemici(stanze, rango);
 
+    // Genera decorazioni (torce e trappole)
+    final decorazioni = _generaDecorazioni(stanze);
+
+    // Genera griglia collisioni (0=passabile, 1=muro)
+    final grigliaCollisioni = _generaGrigliaCollisioni();
+
     // Posizione di partenza (centro della prima stanza)
     final posizionePartenza = stanze.first.centroMondo;
 
     // Posizione del boss (centro dell'ultima stanza)
     final posizioneBoss = stanze.last.centroMondo;
 
-    dev.log('[DUNGEON] Dungeon generato! ${stanze.length} stanze, ${nemici.length} nemici');
+    dev.log('[DUNGEON] Dungeon generato! ${stanze.length} stanze, ${nemici.length} nemici, ${decorazioni.length} decorazioni');
 
     return DungeonResult(
       tiles: tileComponents,
       nemici: nemici,
+      decorazioni: decorazioni,
       posizionePartenza: posizionePartenza,
       posizioneBoss: posizioneBoss,
       stanze: stanze,
       rango: rango,
       piano: piano,
+      grigliaCollisioni: grigliaCollisioni,
     );
   }
 
@@ -447,5 +460,56 @@ class DungeonGenerator {
 
     dev.log('[DUNGEON] ${nemici.length} nemici generati');
     return nemici;
+  }
+
+  /// Genera decorazioni: torce ai muri e trappole a terra
+  List<Component> _generaDecorazioni(List<RoomData> stanze) {
+    dev.log('[DUNGEON] Generazione decorazioni...');
+    final decorazioni = <Component>[];
+
+    for (final stanza in stanze) {
+      if (stanza.isStartRoom) continue;
+
+      // Torce agli angoli delle stanze (vicino ai muri)
+      final torchPositions = [
+        Vector2((stanza.x + 1) * WorldConstants.tileSize, (stanza.y + 1) * WorldConstants.tileSize),
+        Vector2((stanza.x + stanza.larghezza - 2) * WorldConstants.tileSize, (stanza.y + 1) * WorldConstants.tileSize),
+        Vector2((stanza.x + 1) * WorldConstants.tileSize, (stanza.y + stanza.altezza - 2) * WorldConstants.tileSize),
+        Vector2((stanza.x + stanza.larghezza - 2) * WorldConstants.tileSize, (stanza.y + stanza.altezza - 2) * WorldConstants.tileSize),
+      ];
+
+      for (final pos in torchPositions) {
+        if (_rng.nextDouble() < 0.6) { // 60% chance per torcia
+          decorazioni.add(TorchComponent(position: pos));
+        }
+      }
+
+      // Trappole casuali nelle stanze (non nella start e non nella boss room)
+      if (!stanza.isBossRoom && _rng.nextDouble() < 0.3) {
+        final trapX = stanza.x + 2 + _rng.nextInt(max(1, stanza.larghezza - 4));
+        final trapY = stanza.y + 2 + _rng.nextInt(max(1, stanza.altezza - 4));
+        decorazioni.add(TrapComponent(
+          position: Vector2(
+            trapX * WorldConstants.tileSize,
+            trapY * WorldConstants.tileSize,
+          ),
+          danno: 10 + _rng.nextInt(15).toDouble(),
+        ));
+      }
+    }
+
+    dev.log('[DUNGEON] ${decorazioni.length} decorazioni generate');
+    return decorazioni;
+  }
+
+  /// Genera la griglia collisioni (0=passabile, 1=muro) per wall collision
+  List<List<int>> _generaGrigliaCollisioni() {
+    return List.generate(
+      _altezza,
+      (y) => List.generate(
+        _larghezza,
+        (x) => _griglia[y][x] == TileType.muro ? 1 : 0,
+      ),
+    );
   }
 }

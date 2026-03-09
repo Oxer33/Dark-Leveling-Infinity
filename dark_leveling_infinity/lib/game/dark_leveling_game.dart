@@ -64,6 +64,10 @@ class DarkLevelingGame extends FlameGame
   // --- Ombre evocate nel mondo ---
   final List<ShadowComponent> _ombreEvocate = [];
 
+  // --- Wall collision data ---
+  List<List<int>> _grigliaCollisioni = [];
+  int _dungeonLarghezza = 0;
+
   // --- Camera e viewport ---
   late CameraComponent cameraComponent;
 
@@ -188,6 +192,16 @@ class DarkLevelingGame extends FlameGame
       gameWorld.add(nemico);
     }
 
+    // Aggiungi decorazioni (torce animate, trappole)
+    for (final deco in dungeonData.decorazioni) {
+      gameWorld.add(deco);
+    }
+
+    // Salva griglia collisioni per wall collision del player
+    _grigliaCollisioni = dungeonData.grigliaCollisioni;
+    _dungeonLarghezza = dungeonData.grigliaCollisioni.isNotEmpty
+        ? dungeonData.grigliaCollisioni[0].length : 0;
+
     // Aggiungi il combat system al mondo
     combatSystem.inizializza(dungeonData);
 
@@ -207,6 +221,9 @@ class DarkLevelingGame extends FlameGame
 
     // Aggiorna il tempo di gioco
     playerData.tempoGiocatoSecondi += dt;
+
+    // Wall collision: impedisci al player di attraversare i muri
+    _controllaWallCollision();
 
     // Aggiorna il combat system
     combatSystem.update(dt);
@@ -410,6 +427,62 @@ class DarkLevelingGame extends FlameGame
 
   /// Ottieni gli FPS correnti
   int get fps => _fps;
+
+  /// Controlla le collisioni del player con i muri
+  void _controllaWallCollision() {
+    if (_grigliaCollisioni.isEmpty) return;
+
+    final pos = playerComponent.position;
+    final tileX = (pos.x / WorldConstants.tileSize).floor();
+    final tileY = (pos.y / WorldConstants.tileSize).floor();
+    final gridH = _grigliaCollisioni.length;
+
+    // Controlla le 8 tile circostanti + la tile corrente
+    for (int dy = -1; dy <= 1; dy++) {
+      for (int dx = -1; dx <= 1; dx++) {
+        final cx = tileX + dx;
+        final cy = tileY + dy;
+
+        if (cy < 0 || cy >= gridH || cx < 0 || cx >= _dungeonLarghezza) continue;
+        if (_grigliaCollisioni[cy][cx] != 1) continue; // non è un muro
+
+        // Calcola il rettangolo del muro
+        final wallLeft = cx * WorldConstants.tileSize;
+        final wallTop = cy * WorldConstants.tileSize;
+        final wallRight = wallLeft + WorldConstants.tileSize;
+        final wallBottom = wallTop + WorldConstants.tileSize;
+
+        // Controlla overlap con il player (hitbox semplificata 12x12 al centro)
+        final pHalf = 6.0;
+        final pLeft = pos.x - pHalf;
+        final pRight = pos.x + pHalf;
+        final pTop = pos.y - pHalf;
+        final pBottom = pos.y + pHalf;
+
+        if (pRight > wallLeft && pLeft < wallRight &&
+            pBottom > wallTop && pTop < wallBottom) {
+          // Risolvi la collisione spingendo il player fuori
+          final overlapLeft = pRight - wallLeft;
+          final overlapRight = wallRight - pLeft;
+          final overlapTop = pBottom - wallTop;
+          final overlapBottom = wallBottom - pTop;
+
+          final minOverlap = [overlapLeft, overlapRight, overlapTop, overlapBottom]
+              .reduce((a, b) => a < b ? a : b);
+
+          if (minOverlap == overlapLeft) {
+            pos.x -= overlapLeft;
+          } else if (minOverlap == overlapRight) {
+            pos.x += overlapRight;
+          } else if (minOverlap == overlapTop) {
+            pos.y -= overlapTop;
+          } else {
+            pos.y += overlapBottom;
+          }
+        }
+      }
+    }
+  }
 
   /// Rendering del background
   @override
