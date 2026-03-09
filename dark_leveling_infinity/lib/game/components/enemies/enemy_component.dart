@@ -42,6 +42,8 @@ class EnemyComponent extends SpriteComponent with CollisionCallbacks {
   static const double _durataHealthBar = 4.0; // secondi
   double _knockbackX = 0; // offset knockback visivo
   double _knockbackY = 0;
+  double _idleBobTimer = 0; // timer per animazione idle bob
+  double idleBobOffset = 0; // offset Y per il bob (pubblico per render)
 
   // --- Loot drop ---
   bool lootDropped = false;
@@ -107,6 +109,23 @@ class EnemyComponent extends SpriteComponent with CollisionCallbacks {
     } else {
       _knockbackX = 0;
       _knockbackY = 0;
+    }
+
+    // Sprite flip verso il player
+    if (_target != null) {
+      if (_target!.position.x < position.x) {
+        if (!isFlippedHorizontally) flipHorizontally();
+      } else {
+        if (isFlippedHorizontally) flipHorizontally();
+      }
+    }
+
+    // Idle bob animation (leggero su/giù quando idle)
+    _idleBobTimer += dt;
+    if (_stato == EnemyState.idle) {
+      idleBobOffset = sin(_idleBobTimer * 2.5) * 1.5;
+    } else {
+      idleBobOffset *= 0.9; // decay quando non idle
     }
 
     // Aggiorna AI

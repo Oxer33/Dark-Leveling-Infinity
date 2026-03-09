@@ -99,6 +99,22 @@ class PlayerComponent extends SpriteComponent with CollisionCallbacks {
     // Aggiorna movimento
     _aggiornaMovimento(dt);
 
+    // Sprite flip orizzontale in base alla direzione
+    if (_direzione == PlayerDirection.sinistra) {
+      if (!isFlippedHorizontally) flipHorizontally();
+    } else if (_direzione == PlayerDirection.destra) {
+      if (isFlippedHorizontally) flipHorizontally();
+    }
+
+    // Flash invulnerabilità (lampeggio quando colpito)
+    if (_invulnerabile) {
+      paint.color = paint.color.withValues(
+        alpha: ((_timerInvulnerabilita * 20).toInt() % 2 == 0) ? 0.4 : 1.0,
+      );
+    } else {
+      paint.color = paint.color.withValues(alpha: 1.0);
+    }
+
     // Aggiorna combo timer
     _aggiornaCombo(dt);
 
