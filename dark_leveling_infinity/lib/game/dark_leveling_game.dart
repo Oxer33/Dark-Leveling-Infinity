@@ -3,6 +3,7 @@
 library;
 
 import 'dart:developer' as dev;
+import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
@@ -10,13 +11,19 @@ import 'package:flutter/material.dart';
 
 import '../core/constants/game_constants.dart';
 import '../core/constants/colors.dart';
-import '../core/utils/sprite_generator.dart';
+import '../core/utils/sprite_generator_v2.dart';
 import '../data/models/player_data.dart';
 import 'components/player/player_component.dart';
 import 'components/world/dungeon_generator.dart';
 import 'components/combat/combat_system.dart';
+import 'components/shadows/shadow_army.dart';
+import 'components/shadows/shadow_component.dart';
+import 'components/effects/particle_system.dart';
 import 'systems/quest_system.dart';
 import 'systems/leveling_system.dart';
+import 'systems/tutorial_system.dart';
+import 'systems/achievement_system.dart';
+import 'systems/balance_system.dart';
 
 /// Stato del gioco
 enum GameState {
@@ -49,6 +56,13 @@ class DarkLevelingGame extends FlameGame
   late CombatSystem combatSystem;
   late QuestSystem questSystem;
   late LevelingSystem levelingSystem;
+  late TutorialSystem tutorialSystem;
+  late AchievementSystem achievementSystem;
+  late BalanceSystem balanceSystem;
+  late ShadowArmySystem shadowArmySystem;
+
+  // --- Ombre evocate nel mondo ---
+  final List<ShadowComponent> _ombreEvocate = [];
 
   // --- Camera e viewport ---
   late CameraComponent cameraComponent;
@@ -86,6 +100,10 @@ class DarkLevelingGame extends FlameGame
     combatSystem = CombatSystem(game: this);
     questSystem = QuestSystem();
     levelingSystem = LevelingSystem();
+    tutorialSystem = TutorialSystem();
+    achievementSystem = AchievementSystem();
+    balanceSystem = BalanceSystem();
+    shadowArmySystem = ShadowArmySystem();
 
     // Genera gli sprite del player
     await _inizializzaPlayer();
@@ -100,7 +118,8 @@ class DarkLevelingGame extends FlameGame
   Future<void> _inizializzaPlayer() async {
     dev.log('[GAME] Generazione sprite player...');
 
-    final playerSprite = await SpriteGenerator.generaPlayer(dimensione: 32);
+    // Usa SpriteGeneratorV2 per sprite dettagliati
+    final playerSprite = await SpriteGeneratorV2.generaPlayer(dimensione: 32);
     playerComponent = PlayerComponent(
       playerData: playerData,
       sprite: playerSprite,
@@ -122,6 +141,12 @@ class DarkLevelingGame extends FlameGame
 
     cambiaStato(GameState.giocando);
     inviaMessaggioSistema('Benvenuto, Cacciatore. Il tuo viaggio inizia ora.');
+
+    // Tutorial primo avvio
+    tutorialSystem.triggerEvento(TutorialTrigger.primoAvvio);
+
+    // Daily login
+    achievementSystem.controllaLogin();
   }
 
   /// Continua una partita salvata
@@ -189,6 +214,15 @@ class DarkLevelingGame extends FlameGame
     // Aggiorna il sistema quest
     questSystem.update(dt, playerData);
 
+    // Aggiorna il bilanciamento
+    balanceSystem.aggiornaMetriche(dt);
+
+    // Aggiorna le ombre evocate
+    for (final ombra in _ombreEvocate) {
+      if (!ombra.attivo) continue;
+    }
+    _ombreEvocate.removeWhere((o) => !o.attivo);
+
     // Controlla condizioni di game over
     if (playerComponent.saluteAttuale <= 0) {
       _gameOver();
@@ -232,10 +266,21 @@ class DarkLevelingGame extends FlameGame
 
     // Controlla se il rango è cambiato
     final vecchioRango = playerData.rango;
-    // Il rango viene aggiornato automaticamente in PlayerData
     if (playerData.rango != vecchioRango) {
       inviaMessaggioSistema('PROMOZIONE! Sei ora ${playerData.rango.nome}!');
     }
+
+    // Aggiorna limiti Shadow Army basati sul livello
+    shadowArmySystem.aggiornaLimiti(playerData.livello);
+
+    // Achievement progressione
+    achievementSystem.aggiornaProgresso('level_10', playerData.livello);
+    achievementSystem.aggiornaProgresso('level_25', playerData.livello);
+    achievementSystem.aggiornaProgresso('level_50', playerData.livello);
+    achievementSystem.aggiornaProgresso('level_100', playerData.livello);
+
+    // Tutorial
+    tutorialSystem.triggerEvento(TutorialTrigger.primoLevelUp);
 
     onPlayerDataChanged?.call(playerData);
   }
@@ -244,6 +289,17 @@ class DarkLevelingGame extends FlameGame
   void _gameOver() {
     dev.log('[GAME] Game Over!');
     playerData.mortiTotali++;
+
+    // Registra morte nel balance system
+    balanceSystem.registraMorte();
+
+    // Richiama tutte le ombre
+    shadowArmySystem.richiamaTutte();
+    for (final ombra in _ombreEvocate) {
+      ombra.disattiva();
+    }
+    _ombreEvocate.clear();
+
     cambiaStato(GameState.gameOver);
     inviaMessaggioSistema('Sei stato sconfitto... Ma un Cacciatore non si arrende mai.');
   }
@@ -286,10 +342,59 @@ class DarkLevelingGame extends FlameGame
     playerComponent.schiva(direzione);
   }
 
-  /// Evoca le ombre
-  void evocaOmbre() {
+  /// Evoca le ombre nel mondo di gioco
+  Future<void> evocaOmbre() async {
     if (_statoCorrente != GameState.giocando) return;
-    combatSystem.evocaOmbre(playerComponent);
+
+    dev.log('[GAME] Evocazione ombre...');
+
+    // Evoca tutte le ombre disponibili
+    final numEvocate = shadowArmySystem.evocaTutte();
+
+    if (numEvocate == 0) {
+      inviaMessaggioSistema('Nessuna ombra disponibile per l\'evocazione.');
+      return;
+    }
+
+    // Spawna i ShadowComponent visivi nel mondo
+    int indice = 0;
+    for (final ombraData in shadowArmySystem.ombreEvocate) {
+      if (ombraData.evocata) {
+        // Calcola posizione in formazione intorno al player
+        final angolo = (indice / numEvocate) * 3.14159 * 2;
+        final posizione = playerComponent.position + Vector2(
+          cos(angolo) * 40, sin(angolo) * 40,
+        );
+
+        final shadowComp = await ShadowComponent.crea(
+          shadowData: ombraData,
+          posizione: posizione,
+          angoloFormazione: angolo,
+        );
+        shadowComp.setOwner(playerComponent);
+
+        gameWorld.add(shadowComp);
+        _ombreEvocate.add(shadowComp);
+        indice++;
+      }
+    }
+
+    // Effetto visivo evocazione
+    final effetti = ParticleSystem.creaEffettoOmbra(
+      playerComponent.position,
+      numParticelle: 25,
+      raggio: 40,
+      estrazione: false,
+    );
+    for (final e in effetti) {
+      gameWorld.add(e);
+    }
+
+    inviaMessaggioSistema('Alzatevi, mie ombre! ($numEvocate evocate)');
+    achievementSystem.incrementaProgresso('shadow_1');
+
+    // Trigger tutorial
+    tutorialSystem.triggerEvento(TutorialTrigger.primaEvocazione);
   }
 
   /// Aggiorna il contatore FPS

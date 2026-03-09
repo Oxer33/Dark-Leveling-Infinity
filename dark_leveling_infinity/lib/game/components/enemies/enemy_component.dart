@@ -38,6 +38,10 @@ class EnemyComponent extends SpriteComponent with CollisionCallbacks {
   // --- Effetti ---
   bool _flashDanno = false;
   double _timerFlash = 0;
+  double _timerHealthBar = 0; // timer per mostrare la health bar
+  static const double _durataHealthBar = 4.0; // secondi
+  double _knockbackX = 0; // offset knockback visivo
+  double _knockbackY = 0;
 
   // --- Loot drop ---
   bool lootDropped = false;
@@ -87,9 +91,22 @@ class EnemyComponent extends SpriteComponent with CollisionCallbacks {
       _timerFlash -= dt;
       if (_timerFlash <= 0) {
         _flashDanno = false;
-        // Ripristina opacità
         paint.colorFilter = null;
       }
+    }
+
+    // Aggiorna timer health bar
+    if (_timerHealthBar > 0) _timerHealthBar -= dt;
+
+    // Aggiorna knockback visivo (decay)
+    if (_knockbackX.abs() > 0.1 || _knockbackY.abs() > 0.1) {
+      position.x += _knockbackX;
+      position.y += _knockbackY;
+      _knockbackX *= 0.8; // decay
+      _knockbackY *= 0.8;
+    } else {
+      _knockbackX = 0;
+      _knockbackY = 0;
     }
 
     // Aggiorna AI
@@ -137,6 +154,19 @@ class EnemyComponent extends SpriteComponent with CollisionCallbacks {
     _flashDanno = true;
     _timerFlash = 0.15;
     paint.colorFilter = const ColorFilter.mode(Colors.red, BlendMode.modulate);
+
+    // Mostra health bar
+    _timerHealthBar = _durataHealthBar;
+
+    // Knockback visivo
+    if (_target != null) {
+      final dir = (position - _target!.position);
+      if (dir.length > 0) {
+        final dirN = dir.normalized();
+        _knockbackX = dirN.x * 4.0 * (critico ? 2.0 : 1.0);
+        _knockbackY = dirN.y * 4.0 * (critico ? 2.0 : 1.0);
+      }
+    }
 
     // Se stava in idle, ora insegue
     if (_stato == EnemyState.idle) {

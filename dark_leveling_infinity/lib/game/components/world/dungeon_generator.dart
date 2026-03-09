@@ -7,7 +7,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 
 import '../../../core/constants/game_constants.dart';
-import '../../../core/utils/sprite_generator.dart';
+import '../../../core/utils/sprite_generator_v2.dart';
 import '../../../data/enemies/enemy_definitions.dart';
 import '../../../data/enemies/boss_definitions.dart';
 import '../enemies/enemy_component.dart';
@@ -332,15 +332,16 @@ class DungeonGenerator {
         a.y + a.altezza + margine > b.y;
   }
 
-  /// Prepara la cache degli sprite per le tile
+  /// Prepara la cache degli sprite per le tile (V2 con pixel art avanzata)
   Future<void> _preparaSpriteCache() async {
     if (_spriteCache.isNotEmpty) return;
 
-    _spriteCache[TileType.pavimento] = await SpriteGenerator.generaTile(tipo: 'pavimento');
-    _spriteCache[TileType.muro] = await SpriteGenerator.generaTile(tipo: 'muro');
-    _spriteCache[TileType.porta] = await SpriteGenerator.generaTile(tipo: 'porta');
-    _spriteCache[TileType.scale] = await SpriteGenerator.generaTile(tipo: 'scale');
-    _spriteCache[TileType.vuoto] = await SpriteGenerator.generaTile(tipo: 'vuoto');
+    // Usa SpriteGeneratorV2 per tile con dettagli, crepe, variazioni
+    _spriteCache[TileType.pavimento] = await SpriteGeneratorV2.generaTilePavimento();
+    _spriteCache[TileType.muro] = await SpriteGeneratorV2.generaTileMuro();
+    _spriteCache[TileType.porta] = await SpriteGeneratorV2.generaTilePorta();
+    _spriteCache[TileType.scale] = await SpriteGeneratorV2.generaTilePavimento(seed: 42);
+    _spriteCache[TileType.vuoto] = await SpriteGeneratorV2.generaTileVuoto();
   }
 
   /// Crea i componenti sprite per tutte le tile
@@ -396,7 +397,8 @@ class DungeonGenerator {
         // Genera il boss
         final bossData = BossDatabase.getBossCasualePerGate(rango);
         if (bossData != null) {
-          final bossSprite = await SpriteGenerator.generaNemico(
+          // Usa SpriteGeneratorV2 per boss con pixel art dettagliata
+          final bossSprite = await SpriteGeneratorV2.generaNemico(
             tipo: 'boss',
             dimensione: 32,
             scala: bossData.dimensione,
@@ -422,7 +424,8 @@ class DungeonGenerator {
           final posX = stanza.x + 1 + _rng.nextInt(stanza.larghezza - 2);
           final posY = stanza.y + 1 + _rng.nextInt(stanza.altezza - 2);
 
-          final nemicoSprite = await SpriteGenerator.generaNemico(
+          // Usa SpriteGeneratorV2 per nemici con pixel art dettagliata
+          final nemicoSprite = await SpriteGeneratorV2.generaNemico(
             tipo: nemicoData.aiType.name,
             dimensione: 32,
             scala: nemicoData.dimensione,
