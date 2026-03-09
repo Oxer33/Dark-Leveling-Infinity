@@ -10,6 +10,7 @@ import 'package:flame/components.dart';
 import '../../../core/constants/game_constants.dart';
 import '../../../core/constants/colors.dart';
 import '../effects/particle_system.dart';
+import '../effects/visual_effects.dart';
 import '../player/player_component.dart';
 import '../enemies/enemy_component.dart';
 import '../world/dungeon_generator.dart';
@@ -515,7 +516,6 @@ class CombatSystem {
     // Dai esperienza
     final levelUp = player.aggiungiEsperienza(nemico.enemyData.expRicompensa);
     if (levelUp) {
-      // Effetto level up visivo
       _spawnaEffettoLevelUp(player.position);
       game.onLevelUp();
     }
@@ -527,8 +527,24 @@ class CombatSystem {
     _spawnaDamageNumber(
       nemico.position + Vector2(0, -10),
       nemico.enemyData.expRicompensa,
-      cura: true, // verde per exp
+      cura: true,
     );
+
+    // === SPAWNA EXP ORBS che volano verso il player ===
+    if (_gameWorld != null) {
+      final numOrbs = nemico.isBoss ? 8 : 3;
+      final rng = Random();
+      for (int i = 0; i < numOrbs; i++) {
+        _gameWorld!.add(ExpOrb(
+          posizione: nemico.position.clone() + Vector2(
+            (rng.nextDouble() - 0.5) * 20,
+            (rng.nextDouble() - 0.5) * 20,
+          ),
+          targetPosition: player.position,
+          espValore: nemico.enemyData.expRicompensa / numOrbs,
+        ));
+      }
+    }
 
     // Aggiorna statistiche
     player.playerData.nemiciSconfitti++;
