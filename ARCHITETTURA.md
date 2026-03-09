@@ -138,34 +138,46 @@ menu → caricamento → giocando ↔ pausa
 
 ## 📊 Sistemi Implementati
 
-### ✅ Completati
+### ✅ Completati (v2.0)
 - [x] Core Game Engine con Flame
 - [x] Player Component con stats, movimento, combattimento
-- [x] 100 nemici unici con AI diversa
+- [x] 100 nemici unici con 20 tipi di AI diversa
 - [x] 30 boss unici con fasi multiple
 - [x] Generazione procedurale dungeon (BSP)
+- [x] **Chunk-based infinite world** con 10 biomi diversi
 - [x] Combat System con combo, abilità, elementi
 - [x] Shadow Army System (estrazione, evocazione, progressione)
+- [x] **ShadowComponent visivo** - ombre che combattono nel mondo
 - [x] Inventario e Loot System
 - [x] Quest System (giornaliere + principali)
 - [x] Skill Tree (32+ abilità in 4 categorie)
 - [x] Sistema di salvataggio persistente
 - [x] UI: Menu principale, HUD, Overlay (pausa, game over, level up)
+- [x] **UI Responsive** per tutti i dispositivi (5 device types)
 - [x] Sprite generator procedurale
+- [x] **Animazioni sprite** (7 per player, 4 per nemici)
+- [x] **Effetti particellari avanzati** (15+ tipi di effetti)
+- [x] **Damage numbers fluttuanti** e health bar nemici
+- [x] **Screen shake** e camera effects
 - [x] Sistema ranking Hunter (E→Monarch)
+- [x] **Tutorial interattivo** (15 step contestuali)
+- [x] **Sistema bilanciamento** (difficoltà adattiva, 5 livelli)
+- [x] **IAP reale** con Google Play Billing / StoreKit
+- [x] **Achievements** (38 trofei in 5 categorie)
+- [x] **Daily login rewards** (30 giorni con bonus settimanali)
+- [x] Schermata impostazioni completa
+- [x] Market/IAP completo con 3 tab
+- [x] **Icona app** generata proceduralmente
 
 ### 🔄 Da Completare
-- [ ] Effetti particellari avanzati
-- [ ] Sistema audio completo
-- [ ] Schermata impostazioni completa
-- [ ] Market/IAP completo
-- [ ] Schermata inventario dettagliata
-- [ ] Schermata Shadow Army dettagliata
-- [ ] Schermata skill tree dettagliata
-- [ ] Tutorial in-game
+- [ ] Sistema audio completo (musica + SFX)
+- [ ] Schermata inventario dettagliata con drag&drop
+- [ ] Schermata Shadow Army con formazione visiva
+- [ ] Schermata skill tree con grafo visuale
 - [ ] Leaderboard online
-- [ ] Sistema achievements
 - [ ] Multiplayer (co-op gates)
+- [ ] Seasonal events
+- [ ] Clan/Guild system
 
 ---
 
