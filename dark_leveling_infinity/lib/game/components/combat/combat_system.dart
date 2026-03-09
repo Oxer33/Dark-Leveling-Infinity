@@ -1,5 +1,6 @@
 /// Sistema di combattimento di Dark Leveling Infinity
 /// Gestisce attacchi, abilità, danni, combo e interazioni di combattimento
+/// V2: Integrato con ParticleSystem, DamageNumbers, ScreenShake, ElementalSystem
 library;
 
 import 'dart:developer' as dev;
@@ -7,9 +8,12 @@ import 'dart:math';
 import 'package:flame/components.dart';
 
 import '../../../core/constants/game_constants.dart';
+import '../../../core/constants/colors.dart';
+import '../effects/particle_system.dart';
 import '../player/player_component.dart';
 import '../enemies/enemy_component.dart';
 import '../world/dungeon_generator.dart';
+import '../../systems/elemental_system.dart';
 
 /// Tipo di abilità del player
 enum SkillType {
@@ -55,6 +59,30 @@ class CombatSystem {
   int dannoTotaleInflitto = 0;
   int dannoTotaleRicevuto = 0;
 
+  // Sistema elementale per le reazioni
+  final ElementalSystem _elementalSystem = ElementalSystem();
+
+  // Riferimento al mondo per spawnare effetti
+  World? _gameWorld;
+  CameraComponent? _camera;
+
+  // Auto-targeting: nemico più vicino
+  EnemyComponent? _autoTarget;
+  double _timerAutoTarget = 0;
+
+  // Parry system
+  bool _parryAttivo = false;
+  double _parryTimer = 0;
+  static const double _parryWindow = 0.3; // finestra di parry in secondi
+  static const double _parryCooldown = 1.0;
+  double _parryCooldownTimer = 0;
+
+  // Dash chain
+  int _dashChainCount = 0;
+  double _dashChainTimer = 0;
+  static const double _dashChainWindow = 0.8;
+  static const int _maxDashChain = 3;
+
   CombatSystem({required this.game});
 
   /// Inizializza il combat system per un nuovo dungeon
@@ -64,6 +92,11 @@ class CombatSystem {
     _nemiciSconfittiRun = 0;
     dannoTotaleInflitto = 0;
     dannoTotaleRicevuto = 0;
+    _elementalSystem.pulisci();
+
+    // Prendi riferimento al mondo e camera per spawnare effetti
+    _gameWorld = game.gameWorld as World;
+    _camera = game.cameraComponent as CameraComponent;
 
     // Resetta cooldown
     _cooldownAbilita.clear();
@@ -87,6 +120,32 @@ class CombatSystem {
         _cooldownAbilita[skill] = _cooldownAbilita[skill]! - dt;
       }
     }
+
+    // Aggiorna parry
+    if (_parryAttivo) {
+      _parryTimer -= dt;
+      if (_parryTimer <= 0) _parryAttivo = false;
+    }
+    if (_parryCooldownTimer > 0) _parryCooldownTimer -= dt;
+
+    // Aggiorna dash chain timer
+    if (_dashChainTimer > 0) {
+      _dashChainTimer -= dt;
+      if (_dashChainTimer <= 0) _dashChainCount = 0;
+    }
+
+    // Auto-targeting: aggiorna il nemico più vicino
+    _timerAutoTarget += dt;
+    if (_timerAutoTarget >= 0.2) {
+      _timerAutoTarget = 0;
+      _aggiornaAutoTarget();
+    }
+
+    // Spawna particelle scia del player durante il movimento
+    _spawnaScia(dt);
+
+    // Spawna particelle aura del player
+    _spawnaAuraPlayer(dt);
 
     // Rimuovi nemici morti dalla lista
     _nemiciAttivi.removeWhere((nemico) {
@@ -138,8 +197,25 @@ class CombatSystem {
       nemico.riceviDanno(danno, critico: critico);
       dannoTotaleInflitto += danno.toInt();
 
+      // === EFFETTI VISIVI V2 ===
+      // Spawna particelle impatto nella posizione del nemico
+      _spawnaEffettoImpatto(nemico.position, critico: critico);
+
+      // Spawna damage number fluttuante
+      _spawnaDamageNumber(nemico.position, danno, critico: critico);
+
+      // Screen shake su critico
+      if (critico && _camera != null) {
+        ScreenShake.applica(_camera!, intensita: 4.0, durata: 0.15);
+      }
+
       // Incrementa combo
       player.incrementaCombo();
+    }
+
+    // Screen shake leggero su ogni attacco
+    if (nemiciColpiti.isNotEmpty && _camera != null) {
+      ScreenShake.applica(_camera!, intensita: 1.5, durata: 0.08);
     }
 
     // Imposta cooldown attacco
@@ -433,22 +509,246 @@ class CombatSystem {
 
     final player = game.playerComponent as PlayerComponent;
 
+    // === EFFETTI VISIVI MORTE V2 ===
+    _spawnaEffettoMorte(nemico);
+
     // Dai esperienza
     final levelUp = player.aggiungiEsperienza(nemico.enemyData.expRicompensa);
     if (levelUp) {
+      // Effetto level up visivo
+      _spawnaEffettoLevelUp(player.position);
       game.onLevelUp();
     }
 
     // Dai oro
     player.aggiungiOro(nemico.enemyData.oroRicompensa);
 
+    // Spawna testo EXP e Oro
+    _spawnaDamageNumber(
+      nemico.position + Vector2(0, -10),
+      nemico.enemyData.expRicompensa,
+      cura: true, // verde per exp
+    );
+
     // Aggiorna statistiche
     player.playerData.nemiciSconfitti++;
     if (nemico.isBoss) {
       player.playerData.bosssSconfitti++;
+      // Boss kill: screen shake potente + onda d'urto
+      if (_camera != null) {
+        ScreenShake.applica(_camera!, intensita: 10.0, durata: 0.5);
+      }
       game.inviaMessaggioSistema('Boss ${nemico.enemyData.nome} sconfitto!');
     }
 
+    // Pulisci elementi dal nemico morto
+    _elementalSystem.rimuoviElementi(nemico.enemyData.id);
+
     dev.log('[COMBAT] ${nemico.enemyData.nome} sconfitto! +${nemico.enemyData.expRicompensa} EXP, +${nemico.enemyData.oroRicompensa} oro');
   }
+
+  // ═══════════════════════════════════════════════
+  // EFFETTI VISIVI - Spawning nel mondo di gioco
+  // ═══════════════════════════════════════════════
+
+  /// Spawna particelle d'impatto alla posizione del nemico
+  void _spawnaEffettoImpatto(Vector2 posizione, {bool critico = false}) {
+    if (_gameWorld == null) return;
+    final effetti = ParticleSystem.creaEffettoImpatto(
+      posizione.clone(),
+      critico: critico,
+      numParticelle: critico ? 16 : 8,
+    );
+    for (final e in effetti) {
+      _gameWorld!.add(e);
+    }
+  }
+
+  /// Spawna un numero di danno fluttuante
+  void _spawnaDamageNumber(Vector2 posizione, double danno, {bool critico = false, bool cura = false}) {
+    if (_gameWorld == null) return;
+    final offset = Vector2(
+      (Random().nextDouble() - 0.5) * 10,
+      -5 - Random().nextDouble() * 5,
+    );
+    _gameWorld!.add(DamageNumber(
+      testo: cura ? '+${danno.toInt()}' : '${danno.toInt()}',
+      posizione: posizione.clone() + offset,
+      critico: critico,
+      cura: cura,
+    ));
+  }
+
+  /// Spawna effetto morte nemico (esplosione particelle)
+  void _spawnaEffettoMorte(EnemyComponent nemico) {
+    if (_gameWorld == null) return;
+    final effetti = ParticleSystem.creaEffettoMorte(
+      nemico.position.clone(),
+      colore: GameColors.primaryPurple,
+      dimensione: nemico.enemyData.dimensione,
+      isBoss: nemico.isBoss,
+    );
+    for (final e in effetti) {
+      _gameWorld!.add(e);
+    }
+  }
+
+  /// Spawna effetto level up (colonna di luce dorata)
+  void _spawnaEffettoLevelUp(Vector2 posizione) {
+    if (_gameWorld == null) return;
+    final effetti = ParticleSystem.creaEffettoLevelUp(posizione.clone());
+    for (final e in effetti) {
+      _gameWorld!.add(e);
+    }
+    // Screen shake celebrativo
+    if (_camera != null) {
+      ScreenShake.applica(_camera!, intensita: 3.0, durata: 0.3);
+    }
+  }
+
+  /// Spawna particelle scia del player durante il movimento
+  void _spawnaScia(double dt) {
+    if (_gameWorld == null) return;
+    final player = game.playerComponent as PlayerComponent;
+    if (player.animState != PlayerAnimState.cammina) return;
+
+    final particella = ParticleSystem.creaParticellaScia(
+      player.position,
+      player.direzioneVettore,
+      colore: GameColors.neonPurple,
+    );
+    if (particella != null) {
+      _gameWorld!.add(particella);
+    }
+  }
+
+  /// Spawna particelle aura intorno al player
+  void _spawnaAuraPlayer(double dt) {
+    if (_gameWorld == null) return;
+    final player = game.playerComponent as PlayerComponent;
+
+    final particella = ParticleSystem.creaParticellaAura(
+      player.position,
+      colore: GameColors.primaryPurple,
+      raggio: 14,
+    );
+    if (particella != null) {
+      _gameWorld!.add(particella);
+    }
+  }
+
+  // ═══════════════════════════════════════════════
+  // MECCANICHE AVANZATE V2
+  // ═══════════════════════════════════════════════
+
+  /// Auto-targeting: trova il nemico più vicino al player
+  void _aggiornaAutoTarget() {
+    final player = game.playerComponent as PlayerComponent;
+    double minDist = 150.0; // range di auto-target
+    _autoTarget = null;
+
+    for (final nemico in _nemiciAttivi) {
+      if (nemico.morto) continue;
+      final dist = player.position.distanceTo(nemico.position);
+      if (dist < minDist) {
+        minDist = dist;
+        _autoTarget = nemico;
+      }
+    }
+  }
+
+  /// Attiva il parry (contrattacco)
+  void attivaParry() {
+    if (_parryCooldownTimer > 0 || _parryAttivo) return;
+    _parryAttivo = true;
+    _parryTimer = _parryWindow;
+    _parryCooldownTimer = _parryCooldown;
+    dev.log('[COMBAT] Parry attivato!');
+  }
+
+  /// Controlla se un attacco nemico viene parato
+  bool controllaParry(double dannoNemico, Vector2 posizioneNemico) {
+    if (!_parryAttivo) return false;
+
+    _parryAttivo = false;
+    dev.log('[COMBAT] PARRY RIUSCITO! Contrattacco!');
+
+    // Contrattacco: infliggi danno doppio al nemico
+    final player = game.playerComponent as PlayerComponent;
+    final nemiciVicini = _trovaNemiciInRange(
+      player.position, player.direzioneVettore, 60, angoloCono: 120,
+    );
+
+    for (final nemico in nemiciVicini) {
+      final controDanno = player.playerData.stats.dannoFisico * 3.0;
+      nemico.riceviDanno(controDanno, critico: true);
+      _spawnaEffettoImpatto(nemico.position, critico: true);
+      _spawnaDamageNumber(nemico.position, controDanno, critico: true);
+    }
+
+    // Effetto visivo parry
+    if (_gameWorld != null) {
+      final effetti = ParticleSystem.creaEffettoGhiaccio(
+        player.position, numParticelle: 12,
+      );
+      for (final e in effetti) {
+        _gameWorld!.add(e);
+      }
+    }
+
+    if (_camera != null) {
+      ScreenShake.applica(_camera!, intensita: 5.0, durata: 0.2);
+    }
+
+    game.inviaMessaggioSistema('Parry perfetto! Contrattacco!');
+    return true;
+  }
+
+  /// Esegui dash chain (schivata concatenata)
+  void eseguiDashChain(PlayerComponent player, Vector2 direzione) {
+    if (_dashChainCount >= _maxDashChain) return;
+
+    _dashChainCount++;
+    _dashChainTimer = _dashChainWindow;
+
+    // Ogni dash successivo è più veloce e fa più danno
+    final moltiplicatore = 1.0 + _dashChainCount * 0.5;
+    final danno = player.playerData.stats.dannoFisico * moltiplicatore;
+
+    // Dash e colpisci nemici sul percorso
+    final nemici = _trovaNemiciInRange(
+      player.position, direzione, 80, angoloCono: 45,
+    );
+
+    for (final nemico in nemici) {
+      nemico.riceviDanno(danno, critico: _dashChainCount >= 3);
+      _spawnaEffettoImpatto(nemico.position, critico: _dashChainCount >= 3);
+      _spawnaDamageNumber(nemico.position, danno, critico: _dashChainCount >= 3);
+    }
+
+    // Effetto scia schivata
+    if (_gameWorld != null) {
+      final effetti = ParticleSystem.creaEffettoSchivata(
+        player.position, direzione,
+      );
+      for (final e in effetti) {
+        _gameWorld!.add(e);
+      }
+    }
+
+    if (_dashChainCount >= 3) {
+      game.inviaMessaggioSistema('Dash Chain x$_dashChainCount!');
+    }
+
+    dev.log('[COMBAT] Dash chain x$_dashChainCount');
+  }
+
+  /// Ottieni il nemico auto-targetato
+  EnemyComponent? get autoTarget => _autoTarget;
+
+  /// Il parry è attivo?
+  bool get parryAttivo => _parryAttivo;
+
+  /// Dash chain count corrente
+  int get dashChainCount => _dashChainCount;
 }
