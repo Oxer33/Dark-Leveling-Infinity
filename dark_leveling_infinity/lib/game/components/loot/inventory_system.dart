@@ -26,7 +26,7 @@ class InventorySystem {
   };
 
   // Capacità massima inventario
-  int _capacitaMax = 50;
+  final int _capacitaMax = 50;
 
   // Database items statici
   static final List<ItemData> _databaseItems = _generaDatabaseItems();
@@ -143,8 +143,11 @@ class InventorySystem {
 
     // Numero di drops basato sulla forza del nemico
     int numDrops = 1;
-    if (isBoss) numDrops = 3 + _rng.nextInt(3); // 3-5 drops per boss
-    else if (nemico.livelloBase > 100) numDrops = 1 + _rng.nextInt(2);
+    if (isBoss) {
+      numDrops = 3 + _rng.nextInt(3); // 3-5 drops per boss
+    } else if (nemico.livelloBase > 100) {
+      numDrops = 1 + _rng.nextInt(2);
+    }
 
     for (int i = 0; i < numDrops; i++) {
       // Determina la rarità del drop

@@ -292,7 +292,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Switch(
             value: valore,
             onChanged: onChanged,
-            activeColor: GameColors.primaryPurple,
+            activeTrackColor: GameColors.primaryPurple,
             inactiveTrackColor: GameColors.backgroundDark,
           ),
         ],
