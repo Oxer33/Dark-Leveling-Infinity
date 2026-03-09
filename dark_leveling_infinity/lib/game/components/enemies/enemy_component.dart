@@ -565,6 +565,13 @@ class EnemyComponent extends SpriteComponent with CollisionCallbacks {
       dev.log('[BOSS] ${bossData.nome} entra nella fase ${_faseCorrenteBoss + 1}!');
       if (prossimaFase.dialogoFase != null) {
         dev.log('[BOSS] "${prossimaFase.dialogoFase}"');
+        // Spawna il dialogo del boss come componente visivo nel mondo
+        parent?.add(
+          _BossDialogText(
+            testo: prossimaFase.dialogoFase!,
+            posizione: position + Vector2(0, -size.y * 0.8),
+          ),
+        );
       }
 
       // Breve invulnerabilità durante la transizione
@@ -586,5 +593,103 @@ class EnemyComponent extends SpriteComponent with CollisionCallbacks {
     Future.delayed(const Duration(milliseconds: 500), () {
       removeFromParent();
     });
+  }
+
+  /// Render custom: disegna la health bar sopra il nemico
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    // Health bar (visibile solo quando colpito o se è un boss)
+    if ((_timerHealthBar > 0 || isBoss) && !_morto) {
+      final barW = size.x * 0.8;
+      final barH = 3.0;
+      final barX = (size.x - barW) / 2;
+      final barY = -6.0;
+
+      // Sfondo nero
+      canvas.drawRect(
+        Rect.fromLTWH(barX, barY, barW, barH),
+        Paint()..color = const Color(0xCC000000),
+      );
+
+      // Barra HP colorata
+      final hpPerc = percentualeSalute.clamp(0.0, 1.0);
+      Color hpColor;
+      if (hpPerc > 0.5) {
+        hpColor = const Color(0xFF4CAF50);
+      } else if (hpPerc > 0.25) {
+        hpColor = const Color(0xFFFFEB3B);
+      } else {
+        hpColor = const Color(0xFFFF1744);
+      }
+
+      canvas.drawRect(
+        Rect.fromLTWH(barX + 0.5, barY + 0.5, (barW - 1) * hpPerc, barH - 1),
+        Paint()..color = hpColor,
+      );
+
+      // Bordo
+      canvas.drawRect(
+        Rect.fromLTWH(barX, barY, barW, barH),
+        Paint()
+          ..color = const Color(0x66FFFFFF)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.5,
+      );
+
+      // Nome boss sotto la health bar
+      if (isBoss) {
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: enemyData.nome,
+            style: const TextStyle(
+              fontFamily: 'GameFont',
+              fontSize: 6,
+              color: Color(0xCCFF1744),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset((size.x - textPainter.width) / 2, barY - 8),
+        );
+      }
+    }
+  }
+}
+
+/// Testo del dialogo boss che appare e svanisce
+class _BossDialogText extends TextComponent {
+  double _vita = 3.0;
+
+  _BossDialogText({required String testo, required Vector2 posizione})
+      : super(
+          text: '"$testo"',
+          position: posizione,
+          anchor: Anchor.center,
+          textRenderer: TextPaint(
+            style: const TextStyle(
+              fontFamily: 'GameFont',
+              fontSize: 8,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFFF1744),
+              fontStyle: FontStyle.italic,
+              shadows: [
+                Shadow(color: Color(0xFF000000), blurRadius: 3, offset: Offset(1, 1)),
+              ],
+            ),
+          ),
+        );
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _vita -= dt;
+    position.y -= 8 * dt;
+    if (_vita <= 0) removeFromParent();
   }
 }
