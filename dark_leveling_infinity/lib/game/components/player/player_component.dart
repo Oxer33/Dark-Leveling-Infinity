@@ -186,6 +186,9 @@ class PlayerComponent extends SpriteComponent with CollisionCallbacks {
     // Flash rosso per feedback visivo
     _animState = PlayerAnimState.ferito;
 
+    // Flash rosso sullo schermo (spawna nel mondo)
+    parent?.add(_ScreenDamageFlash());
+
     // Breve invulnerabilità dopo il danno
     _invulnerabile = true;
     _timerInvulnerabilita = 0.3;
@@ -417,4 +420,25 @@ class PlayerComponent extends SpriteComponent with CollisionCallbacks {
 
   /// Ottieni la direzione corrente
   PlayerDirection get direzione => _direzione;
+}
+
+/// Flash rosso sullo schermo quando il player riceve danno
+class _ScreenDamageFlash extends Component {
+  double _vita = 0.2;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _vita -= dt;
+    if (_vita <= 0) removeFromParent();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final alpha = (_vita / 0.2).clamp(0.0, 1.0) * 0.35;
+    canvas.drawRect(
+      const Rect.fromLTWH(-2000, -2000, 5000, 5000),
+      Paint()..color = Color.fromARGB((alpha * 255).toInt(), 255, 0, 0),
+    );
+  }
 }
