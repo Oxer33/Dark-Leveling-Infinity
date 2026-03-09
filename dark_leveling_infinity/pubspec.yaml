@@ -1,0 +1,72 @@
+name: dark_leveling_infinity
+description: "Dark Leveling Infinity - Roguelite RPG ispirato a Solo Leveling"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Game Engine
+  flame: ^1.22.0
+
+  # State Management
+  provider: ^6.1.2
+
+  # Storage & Persistence
+  shared_preferences: ^2.3.4
+  path_provider: ^2.1.5
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # Audio
+  flame_audio: ^2.11.1
+
+  # In-App Purchases
+  in_app_purchase: ^3.2.0
+
+  # UI & Design
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.2
+  shimmer: ^3.0.0
+
+  # Utilities
+  uuid: ^4.5.1
+  equatable: ^2.0.7
+  collection: ^1.19.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/player/
+    - assets/images/enemies/
+    - assets/images/bosses/
+    - assets/images/shadows/
+    - assets/images/items/
+    - assets/images/effects/
+    - assets/images/ui/
+    - assets/images/tiles/
+    - assets/images/icons/
+    - assets/audio/
+    - assets/audio/music/
+    - assets/audio/sfx/
+
+  fonts:
+    - family: GameFont
+      fonts:
+        - asset: assets/fonts/Rajdhani-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Rajdhani-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Rajdhani-Regular.ttf
+          weight: 400
