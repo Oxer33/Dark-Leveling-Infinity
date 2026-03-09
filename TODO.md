@@ -88,35 +88,124 @@
 - [x] Salvataggio impostazioni
 - [x] Rilevamento primo avvio
 
+## ✅ Completati v2.0-2.3 (100+ miglioramenti)
+
+### Grafica (40+ miglioramenti)
+- [x] ShadowComponent visivo - ombre combattono nel mondo con aura
+- [x] Animazioni player: 7 stati (idle, cammina, attacca, schiva, ferito, morto, cast)
+- [x] Animazioni nemici: 4 stati (idle, cammina, attacca, morto)
+- [x] 8 tipi sprite nemici specializzati (melee, ranged, volante, tank, stealth, mago, kamikaze, generico)
+- [x] Sprite player dettagliato (armatura, capelli, occhi luminosi, spallacci, stivali, cintura)
+- [x] Sprite ombre con occhi rossi, aura scura, effetto fumo
+- [x] Effetto breathing nel idle del player
+- [x] Effetto afterimage nella schivata
+- [x] Effetto flash rosso quando colpito
+- [x] Effetto dissoluzione alla morte
+- [x] Effetto aura crescente nel cast abilità
+- [x] Swing spada animato con scia luminosa
+- [x] 15+ tipi effetti particellari
+- [x] Particelle impatto (normale + critico con flash)
+- [x] Particelle morte nemico (esplosione + frammenti ombra)
+- [x] Particelle fuoco (fiamme che salgono)
+- [x] Particelle ghiaccio (cristalli espansivi)
+- [x] Particelle fulmine (scariche elettriche + flash)
+- [x] Particelle veleno (bolle tossiche)
+- [x] Particelle ombra (convergenti/divergenti per estrazione/evocazione)
+- [x] Particelle cura (verdi ascendenti)
+- [x] Particelle level up (colonna dorata)
+- [x] Particelle schivata (afterimage trail)
+- [x] Particelle ambiente (polvere, scintille, nebbia oscura)
+- [x] Scia del player durante il movimento
+- [x] Aura particellare intorno al player
+- [x] Onda d'urto (shockwave ring) per boss kill e level up
+- [x] Damage numbers fluttuanti (normali, critici, cura)
+- [x] Health bars sopra i nemici con colori dinamici (verde→giallo→rosso)
+- [x] Screen shake con decadimento per impatti e boss
+- [x] Glow effects su occhi, portali, aure
+- [x] Pulse animation sul combo counter
+- [x] Portali gate animati con pulsazione luminosa
+- [x] 10 biomi con colori distinti (dungeon, caverna, cripte, foresta, vulcano, ghiaccio, abisso, tempio, laboratorio, trono)
+- [x] Minimap radar circolare con griglie concentriche
+- [x] Punti colorati minimap per nemici/boss/ombre/loot
+- [x] Indicatore direzionale N su minimap
+- [x] Icona app generata proceduralmente
+
+### Meccaniche (60+ miglioramenti)
+- [x] Chunk-based infinite world generation
+- [x] Cellular automata per generazione grotte naturali
+- [x] 10 biomi diversi con transizioni graduali
+- [x] Corridoi di connessione tra chunk per continuità mondo
+- [x] Porte generate ai colli di bottiglia
+- [x] Spawn nemici procedurale per chunk
+- [x] Spawn loot procedurale per chunk
+- [x] Boss room ogni 10 chunk dal centro
+- [x] Seed-based world per riproducibilità
+- [x] 15 reazioni elementali (stile Genshin Impact)
+- [x] Esplosione (Fuoco+Fulmine), Vapore (Fuoco+Ghiaccio), Superconduzione (Ghiaccio+Fulmine)
+- [x] Corrosione (Fuoco+Veleno), Fiamma Sacra (Fuoco+Sacro), Tempesta di Fuoco (Fuoco+Vento)
+- [x] Gelo Infernale (Ghiaccio+Oscuro), Nebbia Velenosa (Ghiaccio+Veleno)
+- [x] Terrore Oscuro (Fulmine+Oscuro), Terremoto (Fulmine+Terra)
+- [x] Cristallizzazione (Terra+Ghiaccio), Purificazione (Sacro+Oscuro)
+- [x] Lama del Vuoto (Ombra+Oscuro), Tempesta d'Ombra (Ombra+Vento)
+- [x] Peste Tossica (Veleno+Vento)
+- [x] 20 tipi di status effect (buff e debuff)
+- [x] StatusEffectManager con durate e sovrapposizioni
+- [x] Difficoltà adattiva (5 livelli: Facile→Monarca)
+- [x] Scaling nemici basato su differenziale di livello
+- [x] Drop rate dinamico basato su forza relativa
+- [x] Metriche performance player (morti, stanze senza morti)
+- [x] Ricalcolo difficoltà automatico ogni 5 minuti
+- [x] Numero nemici per stanza basato su dimensione e rango
+- [x] Tutorial interattivo con 15 step contestuali
+- [x] Trigger eventi per tutorial automatico
+- [x] Tutorial progressivo dalla prima partita
+- [x] 38 achievements in 5 categorie
+- [x] Achievements combattimento (uccisioni, boss, combo, intoccabile)
+- [x] Achievements esplorazione (gate, biomi)
+- [x] Achievements ombre (estrazione, promozione)
+- [x] Achievements progressione (livelli, abilità)
+- [x] Achievements collezione (rarità items, oro, login)
+- [x] Daily login rewards (30 giorni con bonus settimanali)
+- [x] Reset login consecutivi se salti un giorno
+- [x] IAP reale con Google Play Billing / StoreKit
+- [x] Fallback IAP per debug/emulatore
+- [x] 7 prodotti IAP (gemme x4, pass mensile, starter pack, battle pass)
+- [x] Gestione stati acquisto (pending, purchased, error, restored)
+- [x] Ripristino acquisti precedenti
+- [x] UI responsive con 5 device types
+- [x] Scaling automatico font, padding, icone per dispositivo
+- [x] Dimensioni joystick/pulsanti adattive
+- [x] Camera zoom ottimale per dispositivo
+- [x] Griglia inventario colonne adattive (4-8)
+- [x] Schermata selezione gate con portali animati
+- [x] Indicatore difficoltà relativa al livello player
+- [x] Schermata impostazioni completa (audio, gameplay, controlli, grafica)
+- [x] Schermata market con 3 tab (gemme, speciali, negozio in-game)
+- [x] ShadowComponent con AI autonoma (cerca target, insegue, attacca)
+- [x] Formazione ombre intorno al player
+- [x] Ombre che combattono e contano uccisioni
+- [x] Effetti visivi pulse durante attacco ombre
+- [x] Oscillazione fluttuante ombre
+
 ## 🔄 Da Fare
 
-### Alta Priorità
-- [ ] Icona app personalizzata
-- [ ] Schermata impostazioni completa
-- [ ] Schermata market/IAP
-- [ ] Build APK
-- [ ] Push su GitHub
-
 ### Media Priorità  
-- [ ] Effetti particellari avanzati (esplosioni, scie, impatti)
-- [ ] Sistema audio (musica di sottofondo, effetti sonori)
-- [ ] Schermata inventario dettagliata
-- [ ] Schermata Shadow Army dettagliata
-- [ ] Schermata skill tree visuale
-- [ ] Mini-mappa nel HUD
-- [ ] Tutorial interattivo per nuovi giocatori
+- [ ] Sistema audio completo (musica + SFX)
+- [ ] Schermata inventario dettagliata con drag&drop
+- [ ] Schermata Shadow Army con formazione visiva
+- [ ] Schermata skill tree con grafo visuale
+- [ ] Boss intro cutscene system
+- [ ] Crafting system avanzato con ricette
 
 ### Bassa Priorità
 - [ ] Leaderboard online
-- [ ] Sistema achievements/trofei
 - [ ] Modalità co-op multiplayer
-- [ ] Sistema di crafting avanzato
-- [ ] Sistema di enchanting
 - [ ] Pets/companion system
 - [ ] Modalità Arena PvP
 - [ ] Seasonal events
-- [ ] Daily login rewards
 - [ ] Clan/Guild system
 
 ---
-*Ultimo aggiornamento: 9 Marzo 2026*
+*Ultimo aggiornamento: 9 Marzo 2026 - v2.3*
+*42 file Dart, 0 errori analisi, APK release 45.2MB*
+*GitHub: https://github.com/Oxer33/Dark-Leveling-Infinity*
